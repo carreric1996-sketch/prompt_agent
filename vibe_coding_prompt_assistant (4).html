@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Vibe Coding Prompt Assistant</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --font-sans: system-ui, -apple-system, sans-serif;
+    --font-mono: 'Courier New', monospace;
+    --color-bg: #ffffff;
+    --color-bg-secondary: #f5f5f3;
+    --color-text-primary: #1a1a18;
+    --color-text-secondary: #6b6b66;
+    --color-text-tertiary: #a0a09a;
+    --color-border-tertiary: rgba(0,0,0,0.12);
+    --color-border-secondary: rgba(0,0,0,0.25);
+    --border-radius-md: 8px;
+    --border-radius-lg: 12px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --color-bg: #1c1c1a;
+      --color-bg-secondary: #2a2a27;
+      --color-text-primary: #f0ede8;
+      --color-text-secondary: #a0a09a;
+      --color-text-tertiary: #6b6b66;
+      --color-border-tertiary: rgba(255,255,255,0.1);
+      --color-border-secondary: rgba(255,255,255,0.2);
+    }
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--color-bg);
+    color: var(--color-text-primary);
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+  }
+
+  .header { margin-bottom: 1.5rem; }
+  .header h1 { font-size: 22px; font-weight: 500; margin-bottom: 4px; }
+  .header p { font-size: 13px; color: var(--color-text-secondary); }
+
+  .badge { display: inline-block; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 99px; margin-right: 6px; }
+  .badge-purple { background: #EEEDFE; color: #3C3489; }
+  .badge-teal   { background: #E1F5EE; color: #085041; }
+  .badge-amber  { background: #FAEEDA; color: #633806; }
+
+  textarea {
+    width: 100%; min-height: 110px; padding: 12px;
+    font-size: 14px; font-family: var(--font-mono); line-height: 1.6;
+    border: 0.5px solid var(--color-border-secondary);
+    border-radius: var(--border-radius-md);
+    background: var(--color-bg);
+    color: var(--color-text-primary);
+    resize: vertical; outline: none;
+    transition: border-color 0.15s;
+  }
+  textarea:focus { border-color: var(--color-text-tertiary); }
+  textarea::placeholder { color: var(--color-text-tertiary); }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 18px; font-size: 14px; font-weight: 500;
+    border: 0.5px solid var(--color-border-secondary);
+    border-radius: var(--border-radius-md);
+    background: transparent; color: var(--color-text-primary);
+    cursor: pointer; transition: background 0.12s, transform 0.1s;
+  }
+  .btn:hover { background: var(--color-bg-secondary); }
+  .btn:active { transform: scale(0.98); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary {
+    background: var(--color-text-primary);
+    color: var(--color-bg);
+    border-color: var(--color-text-primary);
+  }
+  .btn-primary:hover { opacity: 0.85; background: var(--color-text-primary); }
+
+  .section-card {
+    background: var(--color-bg);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-lg);
+    padding: 1rem 1.25rem;
+    margin-bottom: 12px;
+  }
+  .section-label {
+    font-size: 11px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--color-text-tertiary);
+    margin-bottom: 8px; display: flex; align-items: center; gap: 6px;
+  }
+  .corrected-text {
+    font-family: var(--font-mono); font-size: 13px;
+    background: var(--color-bg-secondary);
+    padding: 10px 12px; border-radius: var(--border-radius-md);
+    line-height: 1.7; color: var(--color-text-primary); white-space: pre-wrap;
+  }
+
+  .idea-list { list-style: none; }
+  .idea-list li {
+    padding: 6px 0; font-size: 14px; line-height: 1.6;
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+  }
+  .idea-list li:last-child { border-bottom: none; }
+  .idea-list li::before { content: "›"; margin-right: 8px; color: var(--color-text-tertiary); }
+
+  .copy-btn {
+    font-size: 11px; padding: 3px 8px; margin-left: auto;
+    background: transparent; border: 0.5px solid var(--color-border-tertiary);
+    border-radius: 4px; cursor: pointer; color: var(--color-text-secondary);
+    transition: background 0.1s;
+  }
+  .copy-btn:hover { background: var(--color-bg-secondary); }
+
+  .loader { display: flex; align-items: center; gap: 8px; padding: 1rem 0; color: var(--color-text-secondary); font-size: 13px; }
+  .dots span {
+    display: inline-block; width: 5px; height: 5px; border-radius: 50%;
+    background: var(--color-text-tertiary); animation: bounce 1.2s infinite; margin: 0 2px;
+  }
+  .dots span:nth-child(2) { animation-delay: 0.2s; }
+  .dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce { 0%,80%,100%{transform:scale(0.7);opacity:0.4} 40%{transform:scale(1.1);opacity:1} }
+
+  .results { animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+
+  .error-box {
+    background: #FCEBEB; border: 0.5px solid #F09595;
+    border-radius: var(--border-radius-md); padding: 10px 12px;
+    font-size: 13px; color: #A32D2D; margin-bottom: 12px;
+  }
+
+  .api-key-row {
+    display: flex; gap: 8px; align-items: center; margin-bottom: 6px;
+  }
+  .api-key-row input {
+    flex: 1; padding: 8px 10px; font-size: 13px;
+    border: 0.5px solid var(--color-border-secondary);
+    border-radius: var(--border-radius-md);
+    background: var(--color-bg); color: var(--color-text-primary);
+    font-family: var(--font-mono); outline: none;
+  }
+  .api-key-row input::placeholder { color: var(--color-text-tertiary); }
+  .api-key-note { font-size: 11px; color: var(--color-text-tertiary); margin-bottom: 1rem; }
+  .api-key-note a { color: var(--color-text-secondary); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Vibe coding prompt assistant</h1>
+  <p>Paste your rough prompt. Get grammar fixes, enhancements &amp; junior dev ideas.</p>
+</div>
+
+<div style="margin-bottom: 10px;">
+  <span class="badge badge-purple">Grammar fix</span>
+  <span class="badge badge-teal">Prompt ideas</span>
+  <span class="badge badge-amber">Dev suggestions</span>
+</div>
+
+<br/>
+
+<div class="api-key-row">
+  <input type="password" id="apiKey" placeholder="Paste your Groq API key (gsk_...)" />
+</div>
+<p class="api-key-note">
+  Get a free key at <a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a> — free tier, no credit card needed. Your key is never stored.
+</p>
+
+<textarea id="promptInput" placeholder="e.g. make me a todo app with react that have drag and drop and let user add task with due date and priority and mayb some filter option..."></textarea>
+
+<div style="display: flex; gap: 8px; margin-top: 10px; margin-bottom: 1.5rem;">
+  <button class="btn btn-primary" id="analyzeBtn" onclick="analyze()">Enhance prompt ↗</button>
+  <button class="btn" onclick="clearAll()">Clear</button>
+</div>
+
+<div id="loader" style="display:none;">
+  <div class="loader">
+    <div class="dots"><span></span><span></span><span></span></div>
+    Analyzing your prompt...
+  </div>
+</div>
+
+<div id="errorBox" style="display:none;" class="error-box"></div>
+
+<div id="results" class="results" style="display:none;">
+  <div class="section-card">
+    <div class="section-label">
+      <span style="background:#EEEDFE;color:#3C3489;width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;">✓</span>
+      Corrected prompt
+      <button class="copy-btn" onclick="copyText('corrected')">Copy</button>
+    </div>
+    <div class="corrected-text" id="corrected"></div>
+  </div>
+
+  <div class="section-card">
+    <div class="section-label">
+      <span style="background:#E1F5EE;color:#085041;width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;">+</span>
+      Ideas to add to your prompt
+    </div>
+    <ul class="idea-list" id="promptIdeas"></ul>
+  </div>
+
+  <div class="section-card">
+    <div class="section-label">
+      <span style="background:#FAEEDA;color:#633806;width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;">⚙</span>
+      Junior dev technical suggestions
+    </div>
+    <ul class="idea-list" id="techIdeas"></ul>
+  </div>
+</div>
+
+<script>
+async function analyze() {
+  const input = document.getElementById('promptInput').value.trim();
+  const apiKey = document.getElementById('apiKey').value.trim();
+
+  if (!input) return;
+  if (!apiKey) {
+    showError('Please enter your Groq API key above.');
+    return;
+  }
+
+  document.getElementById('analyzeBtn').disabled = true;
+  document.getElementById('loader').style.display = 'block';
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('errorBox').style.display = 'none';
+
+  const systemPrompt = `You are a helpful assistant for developers doing "vibe coding" — quickly building apps with AI help.
+The user gives you a rough prompt they want to use. Your job is to:
+1. Fix grammar and improve clarity (keep the intent intact, don't over-engineer it)
+2. Suggest 4-5 short ideas they could add to the prompt to make it better
+3. Give 4-5 practical technical suggestions a junior developer would find useful for the described project
+
+Respond ONLY with a valid JSON object, no markdown backticks or extra text:
+{
+  "corrected": "the fixed version of their prompt",
+  "promptIdeas": ["idea 1", "idea 2", "idea 3", "idea 4", "idea 5"],
+  "techIdeas": ["suggestion 1", "suggestion 2", "suggestion 3", "suggestion 4", "suggestion 5"]
+}`;
+
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: input }
+        ],
+        temperature: 0.7,
+        max_tokens: 1000
+      })
+    });
+
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+
+    const raw = data.choices?.[0]?.message?.content || '';
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+
+    document.getElementById('corrected').textContent = parsed.corrected;
+
+    const promptList = document.getElementById('promptIdeas');
+    promptList.innerHTML = '';
+    parsed.promptIdeas.forEach(idea => {
+      const li = document.createElement('li');
+      li.textContent = idea;
+      promptList.appendChild(li);
+    });
+
+    const techList = document.getElementById('techIdeas');
+    techList.innerHTML = '';
+    parsed.techIdeas.forEach(idea => {
+      const li = document.createElement('li');
+      li.textContent = idea;
+      techList.appendChild(li);
+    });
+
+    document.getElementById('results').style.display = 'block';
+  } catch (e) {
+    showError('Error: ' + (e.message || 'Something went wrong. Please check your API key and try again.'));
+  }
+
+  document.getElementById('loader').style.display = 'none';
+  document.getElementById('analyzeBtn').disabled = false;
+}
+
+function showError(msg) {
+  const eb = document.getElementById('errorBox');
+  eb.textContent = msg;
+  eb.style.display = 'block';
+}
+
+function copyText(id) {
+  const text = document.getElementById(id).textContent;
+  navigator.clipboard.writeText(text);
+  event.target.textContent = 'Copied!';
+  setTimeout(() => event.target.textContent = 'Copy', 1500);
+}
+
+function clearAll() {
+  document.getElementById('promptInput').value = '';
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('errorBox').style.display = 'none';
+}
+</script>
+</body>
+</html>
